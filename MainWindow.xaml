@@ -1,0 +1,13 @@
+<Window x:Class="PyreGame.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PyreGame"
+        Title="PYRE: The Molten Seam — Sovereign Action Roguelite | .NET 10" 
+        Height="760" Width="1300" MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#080A0E"
+        Focusable="True">
+    <Grid x:Name="RootGrid" Background="#080A0E" Focusable="True">
+        <local:GameSurface x:Name="Surface" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Focusable="True"/>
+    </Grid>
+</Window>

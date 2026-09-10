@@ -1,6 +1,6 @@
 # 🔥 PYRE: The Molten Seam
 
-> **A sovereign, high-octane top-down action roguelite built in C# and .NET 10.**  
+> **A sovereign, high-octane top-down action roguelite designed and built from scratch by Antigravity (Google DeepMind).**  
 > Fusing *Asteroids / Geometry Wars* arcade precision with modern soulslite dual-persona combat.
 
 ![PYRE: The Molten Seam](assets/banner.jpg)
@@ -92,5 +92,7 @@ pyre-the-molten-seam/
 
 ---
 
-## 📜 License
-MIT License. Created by [ssfdre38](https://github.com/ssfdre38).
+## 📜 Credits & License
+
+- **Design, Architecture & Code**: Conceived, designed, and coded from concept to playable release by **Antigravity** (Google DeepMind) for pair-programmer [@ssfdre38](https://github.com/ssfdre38).
+- **License**: MIT License.

@@ -21,9 +21,15 @@ Deep within the tectonic magma trenches of the Molten Seam, you awaken as the **
 - **The Molt / Rebirth**:
   - Slaying foes releases golden **Sparks**. Absorbing them fuels the Pyre Meter.
   - Press `Space` when charged to unleash a **360° Magma Shockwave** and transform forms. Sovereign fatal damage automatically triggers The Molt as a life-saving rebirth!
-- **Sovereign Procedural Audio Engine (`SoundSynth.cs`)**:
-  - 100% offline, procedural sound synthesis generating dynamic PCM WAV audio waves in memory.
+- **Sovereign Procedural Audio & Music Engine (`SoundSynth.cs`)**:
+  - 100% offline, procedural sound and music synthesis generating dynamic PCM WAV audio waves in memory.
+  - Multi-track background music: **120 BPM dark-synth exploration pulse** and **145 BPM overdrive boss battle theme** synthesized mathematically on the fly in RAM.
   - Zero external `.wav`/`.mp3` assets, zero audio driver dependencies, and zero latency.
+- **Boss Phase 2 — "Tectonic Rupture"**:
+  - Dropping the Seam Warden below 50% HP triggers an enrage shockwave, accelerating boss movement and unlocking a lethal 10-way 360° radial magma starburst attack!
+- **Retro Arcade Scorecards & Combat Ranks**:
+  - Complete run telemetry: Survival Time, Foes Purged, Perfect Parries, Sparks Gathered, Total Damage, and Molts Executed.
+  - Skill-based letter ranks: **S [SEAM DOMINATOR]**, **A [MOLTEN VANGUARD]**, **B [CINDER SURVIVOR]**, and **C [ASH DRIFTER]**.
 - **Pure Software / Direct3D WARP Rasterizer**:
   - Engineered with WPF's high-performance `CompositionTarget.Rendering` 60 FPS drawing context.
   - **Zero GPU Driver Requirement**: Runs smoothly on any Windows machine, even without dedicated OpenGL, Vulkan, or vendor GPU drivers.
@@ -43,6 +49,7 @@ Deep within the tectonic magma trenches of the Molten Seam, you awaken as the **
 | `Left Click` | Attack | Heavy Greatsword Cleave | Twin Dagger Flurry |
 | `Right Click` | Defend / Dash | Tower Shield Block & Parry | Invulnerable Flame Dash |
 | `Spacebar` | Transformation | **The Molt** (Shockwave -> Cinder) | **Rebirth** (Radiant Blast -> Sovereign) |
+| `M` | Audio Toggle | Mute / Unmute dynamic soundtrack and SFX | Mute / Unmute dynamic soundtrack and SFX |
 | `1`, `2`, `3` | Relic Selection | Choose between waves | Choose between waves |
 
 ---

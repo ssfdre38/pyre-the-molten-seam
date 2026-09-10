@@ -48,6 +48,13 @@ public sealed class GameSurface : FrameworkElement
     private float _playerSpeedMult = 1.0f;
     private bool _parryNovaRelic = false;
 
+    // Run telemetry & high score stats
+    private float _runDurationSeconds = 0.0f;
+    private int _sparksCollected = 0;
+    private int _parriesCount = 0;
+    private float _totalDamageDealt = 0.0f;
+    private int _moltsUsed = 0;
+
     // Drawing resources cached for performance
     private readonly Typeface _typeface = new("Segoe UI");
     private readonly Typeface _boldTypeface = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
@@ -86,7 +93,13 @@ public sealed class GameSurface : FrameworkElement
         _playerDamageMult = 1.0f;
         _playerSpeedMult = 1.0f;
         _parryNovaRelic = false;
+        _runDurationSeconds = 0.0f;
+        _sparksCollected = 0;
+        _parriesCount = 0;
+        _totalDamageDealt = 0.0f;
+        _moltsUsed = 0;
         _state = GameState.Playing;
+        _soundSynth.PlayExploreMusic(force: true);
     }
 
     private void SpawnWave(int wave)
@@ -125,6 +138,7 @@ public sealed class GameSurface : FrameworkElement
             _enemies.Add(new Enemy(new Vector2(0, -350), EnemyType.SeamWarden));
             _cameraMgr.AddTrauma(0.8f);
             _soundSynth.PlayMolt();
+            _soundSynth.PlayBossMusic();
         }
     }
 
@@ -160,6 +174,8 @@ public sealed class GameSurface : FrameworkElement
 
         if (_state == GameState.Playing)
         {
+            _runDurationSeconds += dt;
+
             // 1. Gather Keyboard Input
             Vector2 moveInput = Vector2.Zero;
             if (Keyboard.IsKeyDown(Key.W)) moveInput.Y -= 1f;
@@ -185,6 +201,7 @@ public sealed class GameSurface : FrameworkElement
             if (_player.IsDead)
             {
                 _soundSynth.PlayHit();
+                _soundSynth.StopMusic();
                 _cameraMgr.AddTrauma(0.9f);
                 _state = GameState.GameOver;
             }
@@ -193,6 +210,17 @@ public sealed class GameSurface : FrameworkElement
             for (int i = _enemies.Count - 1; i >= 0; i--)
             {
                 var enemy = _enemies[i];
+
+                // Phase 2: Boss Enrage Trigger
+                if (enemy.IsBoss && enemy.IsEnraged && !enemy.HasTriggeredEnrage)
+                {
+                    enemy.HasTriggeredEnrage = true;
+                    _cameraMgr.AddTrauma(0.90f);
+                    _soundSynth.PlayMolt();
+                    _particles.EmitShockwave(enemy.Position, 280.0f);
+                    _damageTexts.Spawn(enemy.Position, "TECTONIC RUPTURE!", GameColor.Orange, 1.4f);
+                }
+
                 enemy.Update(_player.Position, dt, (spawnPos, vel, dmg) =>
                 {
                     _projectiles.Add(new Projectile(spawnPos, vel, dmg));
@@ -211,6 +239,7 @@ public sealed class GameSurface : FrameworkElement
                     }
                     else if (_player.IsBlocking)
                     {
+                        _parriesCount++;
                         _soundSynth.PlayParry();
                         enemy.Stun(0.8f);
                         enemy.Velocity = -enemy.Velocity * 1.5f;
@@ -242,6 +271,7 @@ public sealed class GameSurface : FrameworkElement
                     }
                     else if (_player.IsBlocking)
                     {
+                        _parriesCount++;
                         _soundSynth.PlayParry();
                         _particles.EmitBurst(_player.Position, 10, GameColor.Gold, GameColor.White);
                     }
@@ -260,6 +290,7 @@ public sealed class GameSurface : FrameworkElement
 
                 if (Vector2.Distance(s.Position, _player.Position) < _player.Radius + 14.0f)
                 {
+                    _sparksCollected++;
                     _player.AddSpark();
                     _soundSynth.PlaySpark();
                     _damageTexts.Spawn(_player.Position, "+SPARK", GameColor.Gold, 0.45f);
@@ -330,6 +361,13 @@ public sealed class GameSurface : FrameworkElement
 
     private void OnSurfaceKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.M)
+        {
+            _soundSynth.ToggleMute();
+            e.Handled = true;
+            return;
+        }
+
         if (_state == GameState.Title && (e.Key == Key.Space || e.Key == Key.Enter))
         {
             ResetRun();
@@ -414,6 +452,7 @@ public sealed class GameSurface : FrameworkElement
                 if (angleDiff < attackArc)
                 {
                     enemy.CurrentHealth -= baseDmg;
+                    _totalDamageDealt += baseDmg;
                     enemy.Velocity += Vector2.Normalize(toEnemy) * 220f;
                     _soundSynth.PlayHit();
                     _hitStopTimer = 0.05f;
@@ -431,6 +470,7 @@ public sealed class GameSurface : FrameworkElement
                         if (enemy.IsBoss)
                         {
                             _state = GameState.Victory;
+                            _soundSynth.StopMusic();
                         }
 
                         _enemies.RemoveAt(i);
@@ -463,6 +503,7 @@ public sealed class GameSurface : FrameworkElement
         {
             if (_player.TriggerMolt())
             {
+                _moltsUsed++;
                 _soundSynth.PlayMolt();
                 _cameraMgr.AddTrauma(0.7f);
                 _particles.EmitShockwave(_player.Position, 220.0f);
@@ -484,6 +525,7 @@ public sealed class GameSurface : FrameworkElement
         {
             if (_player.TriggerRebirth())
             {
+                _moltsUsed++;
                 _soundSynth.PlayMolt();
                 _cameraMgr.AddTrauma(0.6f);
                 _particles.EmitShockwave(_player.Position, 180.0f);
@@ -695,11 +737,15 @@ public sealed class GameSurface : FrameworkElement
             DrawTextFormatted(dc, txt, 80, 81, 10, Brushes.White, _boldTypeface);
         }
 
-        // Top-Right: Wave Counter
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(230, 14, 17, 24)), new Pen(new SolidColorBrush(Color.FromRgb(45, 55, 75)), 1), new Rect(w - 220, 24, 196, 68), 6, 6);
+        // Top-Right: Wave Counter & Stats
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(230, 14, 17, 24)), new Pen(new SolidColorBrush(Color.FromRgb(45, 55, 75)), 1), new Rect(w - 230, 24, 206, 88), 6, 6);
         string waveTxt = _bossSpawned ? "⚔️ BOSS CHAMBER" : $"WAVE {_currentWave} / 5";
-        DrawTextFormatted(dc, waveTxt, (int)w - 206, 32, 15, Brushes.Gold, _boldTypeface);
-        DrawTextFormatted(dc, $"KILLS: {_totalKills}", (int)w - 206, 56, 13, Brushes.White, _typeface);
+        DrawTextFormatted(dc, waveTxt, (int)w - 216, 32, 15, Brushes.Gold, _boldTypeface);
+        int m = (int)(_runDurationSeconds / 60);
+        int s = (int)(_runDurationSeconds % 60);
+        DrawTextFormatted(dc, $"TIME: {m:D2}:{s:D2}  •  KILLS: {_totalKills}", (int)w - 216, 54, 12, Brushes.White, _typeface);
+        string muteTxt = _soundSynth.IsMuted ? "🔇 [M] AUDIO: MUTED" : "🔊 [M] AUDIO: SYNTH ON";
+        DrawTextFormatted(dc, muteTxt, (int)w - 216, 74, 11, _soundSynth.IsMuted ? Brushes.Red : Brushes.LightGreen, _boldTypeface);
 
         // Top-Center: Boss Bar
         if (_bossSpawned)
@@ -709,15 +755,17 @@ public sealed class GameSurface : FrameworkElement
                 if (e.IsBoss)
                 {
                     double bBarW = 600;
-                    double bBarH = 20;
+                    double bBarH = 22;
                     double bBarX = w / 2 - bBarW / 2;
                     double bBarY = 32;
 
                     dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(220, 20, 10, 10)), null, new Rect(bBarX, bBarY, bBarW, bBarH));
                     float bPct = Math.Clamp(e.CurrentHealth / e.MaxHealth, 0f, 1f);
-                    dc.DrawRectangle(Brushes.Red, null, new Rect(bBarX, bBarY, bBarW * bPct, bBarH));
-                    dc.DrawRectangle(null, new Pen(Brushes.Gold, 1.5), new Rect(bBarX, bBarY, bBarW, bBarH));
-                    DrawTextFormatted(dc, "THE SEAM WARDEN — LORD OF CINDERS", (int)bBarX + 160, (int)bBarY - 18, 13, Brushes.Gold, _boldTypeface);
+                    Brush bFill = e.IsEnraged ? new SolidColorBrush(Color.FromRgb(255, 50, 0)) : Brushes.Red;
+                    dc.DrawRectangle(bFill, null, new Rect(bBarX, bBarY, bBarW * bPct, bBarH));
+                    dc.DrawRectangle(null, new Pen(e.IsEnraged ? Brushes.OrangeRed : Brushes.Gold, e.IsEnraged ? 2.5 : 1.5), new Rect(bBarX, bBarY, bBarW, bBarH));
+                    string bTitle = e.IsEnraged ? "🔥 THE SEAM WARDEN — TECTONIC RUPTURE (PHASE 2) 🔥" : "THE SEAM WARDEN — LORD OF CINDERS";
+                    DrawTextFormatted(dc, bTitle, (int)bBarX + (e.IsEnraged ? 80 : 160), (int)bBarY - 18, 13, e.IsEnraged ? Brushes.OrangeRed : Brushes.Gold, _boldTypeface);
                     break;
                 }
             }
@@ -777,22 +825,76 @@ public sealed class GameSurface : FrameworkElement
         DrawTextFormatted(dc, "Press [1], [2], or [3] on your keyboard to claim boon", (int)w / 2 - 230, 510, 17, Brushes.White, _boldTypeface);
     }
 
+    private string CalculateRank(bool victory, out Brush rankBrush)
+    {
+        if (victory)
+        {
+            if (_runDurationSeconds < 160f && _parriesCount >= 6)
+            {
+                rankBrush = Brushes.Gold;
+                return "S  [SEAM DOMINATOR]";
+            }
+            rankBrush = Brushes.Orange;
+            return "A  [MOLTEN VANGUARD]";
+        }
+        else
+        {
+            if (_currentWave >= 4)
+            {
+                rankBrush = Brushes.SkyBlue;
+                return "B  [CINDER SURVIVOR]";
+            }
+            rankBrush = Brushes.Gray;
+            return "C  [ASH DRIFTER]";
+        }
+    }
+
+    private void DrawStatsCard(DrawingContext dc, double w, double h, bool victory)
+    {
+        int cardW = 620;
+        int cardH = 340;
+        int cardX = (int)w / 2 - cardW / 2;
+        int cardY = (int)h / 2 - cardH / 2 + 30;
+
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(245, 14, 18, 26)), new Pen(victory ? Brushes.Gold : Brushes.Red, 2), new Rect(cardX, cardY, cardW, cardH), 10, 10);
+
+        string rank = CalculateRank(victory, out Brush rankBrush);
+        DrawTextFormatted(dc, $"COMBAT RANK: {rank}", cardX + 35, cardY + 24, 20, rankBrush, _blackTypeface);
+
+        int min = (int)(_runDurationSeconds / 60);
+        int sec = (int)(_runDurationSeconds % 60);
+
+        int col1X = cardX + 40;
+        int col2X = cardX + 320;
+        int rowY = cardY + 75;
+        int rowH = 36;
+
+        DrawTextFormatted(dc, $"⏱️ SURVIVAL TIME : {min:D2}:{sec:D2}", col1X, rowY, 15, Brushes.White, _boldTypeface);
+        DrawTextFormatted(dc, $"⚔️ ENEMIES PURGED: {_totalKills}", col2X, rowY, 15, Brushes.White, _boldTypeface);
+
+        DrawTextFormatted(dc, $"🛡️ PERFECT PARRIES: {_parriesCount}", col1X, rowY + rowH, 15, Brushes.White, _boldTypeface);
+        DrawTextFormatted(dc, $"✨ SPARKS GATHERED: {_sparksCollected}", col2X, rowY + rowH, 15, Brushes.White, _boldTypeface);
+
+        DrawTextFormatted(dc, $"🔥 TOTAL DAMAGE   : {_totalDamageDealt:F0}", col1X, rowY + rowH * 2, 15, Brushes.White, _boldTypeface);
+        DrawTextFormatted(dc, $"⚡ MOLTS EXECUTED : {_moltsUsed}", col2X, rowY + rowH * 2, 15, Brushes.White, _boldTypeface);
+
+        DrawTextFormatted(dc, victory ? "CLICK OR PRESS [SPACE] TO REIGNITE THE RUN" : "CLICK OR PRESS [SPACE] TO ARISE AGAIN", cardX + 90, cardY + cardH - 50, 17, victory ? Brushes.Gold : Brushes.Orange, _boldTypeface);
+    }
+
     private void DrawVictoryScreen(DrawingContext dc, double w, double h)
     {
         dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(220, 10, 15, 24)), null, new Rect(0, 0, w, h));
-        DrawTextFormatted(dc, "VICTORY ACHIEVED", (int)w / 2 - 200, 210, 40, Brushes.Gold, _blackTypeface);
-        DrawTextFormatted(dc, "THE SEAM WARDEN HAS FALLEN. THE ASH IS CONSECRATED.", (int)w / 2 - 280, 280, 17, Brushes.White, _boldTypeface);
-        DrawTextFormatted(dc, $"TOTAL PURGED: {_totalKills} FOES", (int)w / 2 - 120, 330, 17, Brushes.Orange, _boldTypeface);
-        DrawTextFormatted(dc, "CLICK OR PRESS [SPACE] TO REIGNITE THE RUN", (int)w / 2 - 210, 410, 17, Brushes.LightGray, _typeface);
+        DrawTextFormatted(dc, "VICTORY ACHIEVED", (int)w / 2 - 200, 100, 40, Brushes.Gold, _blackTypeface);
+        DrawTextFormatted(dc, "THE SEAM WARDEN HAS FALLEN. THE ASH IS CONSECRATED.", (int)w / 2 - 280, 160, 17, Brushes.White, _boldTypeface);
+        DrawStatsCard(dc, w, h, victory: true);
     }
 
     private void DrawGameOverScreen(DrawingContext dc, double w, double h)
     {
         dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(220, 25, 5, 5)), null, new Rect(0, 0, w, h));
-        DrawTextFormatted(dc, "THE PYRE EXTINGUISHED", (int)w / 2 - 250, 210, 38, Brushes.Red, _blackTypeface);
-        DrawTextFormatted(dc, "YOUR FORM CRUMBLED TO ASH BEFORE THE SEAM.", (int)w / 2 - 240, 280, 17, Brushes.White, _boldTypeface);
-        DrawTextFormatted(dc, $"WAVE REACHED: {_currentWave}  •  KILLS: {_totalKills}", (int)w / 2 - 160, 330, 17, Brushes.Orange, _boldTypeface);
-        DrawTextFormatted(dc, "CLICK OR PRESS [SPACE] TO ARISE AGAIN", (int)w / 2 - 180, 410, 17, Brushes.LightGray, _typeface);
+        DrawTextFormatted(dc, "THE PYRE EXTINGUISHED", (int)w / 2 - 250, 100, 38, Brushes.Red, _blackTypeface);
+        DrawTextFormatted(dc, "YOUR FORM CRUMBLED TO ASH BEFORE THE SEAM.", (int)w / 2 - 240, 160, 17, Brushes.White, _boldTypeface);
+        DrawStatsCard(dc, w, h, victory: false);
     }
 
     private void DrawTextFormatted(DrawingContext dc, string text, int x, int y, double size, Brush brush, Typeface tf)

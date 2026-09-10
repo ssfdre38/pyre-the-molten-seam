@@ -25,6 +25,8 @@ public sealed class Enemy
     public float StunTimer = 0.0f;
     public bool IsDead => CurrentHealth <= 0.0f;
     public bool IsBoss => Type == EnemyType.SeamWarden;
+    public bool IsEnraged => IsBoss && CurrentHealth < MaxHealth * 0.5f;
+    public bool HasTriggeredEnrage = false;
 
     public bool IsTelegraphing => AttackWindup > 0.0f;
     public Vector2 TelegraphTarget;
@@ -88,13 +90,27 @@ public sealed class Enemy
                 }
                 else if (Type == EnemyType.SeamWarden)
                 {
-                    for (int a = -2; a <= 2; a++)
+                    if (IsEnraged)
                     {
-                        float ang = MathF.Atan2(dir.Y, dir.X) + a * 0.25f;
-                        Vector2 pDir = new Vector2(MathF.Cos(ang), MathF.Sin(ang)) * 260.0f;
-                        spawnProjectileCallback?.Invoke(Position, pDir, 20.0f);
+                        // Phase 2: 10-way full 360° magma starburst
+                        for (int a = 0; a < 10; a++)
+                        {
+                            float ang = a * (MathF.PI * 2f / 10f);
+                            Vector2 pDir = new Vector2(MathF.Cos(ang), MathF.Sin(ang)) * 290.0f;
+                            spawnProjectileCallback?.Invoke(Position, pDir, 18.0f);
+                        }
+                        AttackCooldown = 1.35f;
                     }
-                    AttackCooldown = 2.0f;
+                    else
+                    {
+                        for (int a = -2; a <= 2; a++)
+                        {
+                            float ang = MathF.Atan2(dir.Y, dir.X) + a * 0.25f;
+                            Vector2 pDir = new Vector2(MathF.Cos(ang), MathF.Sin(ang)) * 260.0f;
+                            spawnProjectileCallback?.Invoke(Position, pDir, 20.0f);
+                        }
+                        AttackCooldown = 2.0f;
+                    }
                 }
             }
             return;
@@ -139,10 +155,11 @@ public sealed class Enemy
                 break;
 
             case EnemyType.SeamWarden:
-                Velocity = Vector2.Lerp(Velocity, dir * (CurrentHealth < MaxHealth * 0.5f ? Speed * 1.35f : Speed), 1.0f - MathF.Exp(-5.0f * dt));
+                float bossSpeed = IsEnraged ? Speed * 1.45f : Speed;
+                Velocity = Vector2.Lerp(Velocity, dir * bossSpeed, 1.0f - MathF.Exp(-5.5f * dt));
                 if (AttackCooldown <= 0.0f)
                 {
-                    AttackWindup = 0.65f;
+                    AttackWindup = IsEnraged ? 0.45f : 0.65f;
                     TelegraphTarget = playerPos;
                 }
                 break;

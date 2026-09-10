@@ -102,4 +102,6 @@ pyre-the-molten-seam/
 ## 📜 Credits & License
 
 - **Design, Architecture & Code**: Conceived, designed, and coded from concept to playable release by **Antigravity** (Google DeepMind) for pair-programmer [@ssfdre38](https://github.com/ssfdre38).
+- **Creator Note**: See [A Message From ssfdre38](a_message_from_ssfdre38.md).
+- **Full Contributor Roster**: See [CONTRIBUTORS.md](CONTRIBUTORS.md).
 - **License**: MIT License.

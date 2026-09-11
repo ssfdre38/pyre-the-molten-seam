@@ -55,6 +55,14 @@ public sealed class GameSurface : FrameworkElement
     private float _totalDamageDealt = 0.0f;
     private int _moltsUsed = 0;
 
+    public event Action? PlayCinematicRequested;
+
+    public void PauseAudio() => _soundSynth.StopMusic();
+    public void ResumeAudio()
+    {
+        if (_state == GameState.Playing) _soundSynth.PlayExploreMusic();
+    }
+
     // Drawing resources cached for performance
     private readonly Typeface _typeface = new("Segoe UI");
     private readonly Typeface _boldTypeface = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
@@ -364,6 +372,13 @@ public sealed class GameSurface : FrameworkElement
         if (e.Key == Key.M)
         {
             _soundSynth.ToggleMute();
+            e.Handled = true;
+            return;
+        }
+
+        if (_state == GameState.Title && e.Key == Key.C)
+        {
+            PlayCinematicRequested?.Invoke();
             e.Handled = true;
             return;
         }
@@ -793,7 +808,8 @@ public sealed class GameSurface : FrameworkElement
         DrawTextFormatted(dc, "• [Right Click]           : Aegis Parry (Sovereign) / Flame Dash (Cinder)", boxX + 24, boxY + 106, 15, Brushes.White, _typeface);
         DrawTextFormatted(dc, "• [SPACE]                 : Trigger 'The Molt' (At 100% Pyre Charge)", boxX + 24, boxY + 136, 15, Brushes.Orange, _boldTypeface);
 
-        DrawTextFormatted(dc, "CLICK OR PRESS [SPACE] TO COMMENCE PURGE", (int)w / 2 - 250, 510, 19, Brushes.White, _boldTypeface);
+        DrawTextFormatted(dc, "CLICK OR PRESS [SPACE] TO COMMENCE PURGE", (int)w / 2 - 250, 505, 19, Brushes.White, _boldTypeface);
+        DrawTextFormatted(dc, "🎬 PRESS [C] TO WATCH CINEMATIC PROLOGUE (GEMINI OMNI FLASH)", (int)w / 2 - 290, 542, 14, Brushes.Gold, _boldTypeface);
     }
 
     private void DrawRelicScreen(DrawingContext dc, double w, double h)

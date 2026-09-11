@@ -9,5 +9,19 @@
         Focusable="True">
     <Grid x:Name="RootGrid" Background="#080A0E" Focusable="True">
         <local:GameSurface x:Name="Surface" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Focusable="True"/>
+
+        <!-- In-Game Cinematic Prologue Player (Gemini Omni 1.1 Flash / Veo) -->
+        <Grid x:Name="CinematicOverlay" Visibility="Collapsed" Background="Black" Focusable="True">
+            <MediaElement x:Name="CinematicPlayer" LoadedBehavior="Manual" UnloadedBehavior="Manual" Stretch="Uniform" ScrubbingEnabled="True"/>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="28" Background="#CC080A0E" CornerRadius="8" Padding="16,10">
+                <TextBlock Text="[SPACE] or [ESC] SKIP PROLOGUE" Foreground="#FFD700" FontWeight="Bold" FontSize="14" FontFamily="Segoe UI"/>
+            </Border>
+            <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="28" Background="#CC080A0E" CornerRadius="8" Padding="16,10">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🎬 PROLOGUE: THE ASH SEAM " Foreground="#FFA500" FontWeight="Black" FontSize="15" FontFamily="Segoe UI"/>
+                    <TextBlock Text="— Gemini Omni 1.1 Flash Cinematic" Foreground="#A0A5B5" FontWeight="SemiBold" FontSize="15" FontFamily="Segoe UI"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

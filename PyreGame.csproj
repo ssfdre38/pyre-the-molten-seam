@@ -8,5 +8,9 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
-  <!-- Native zero-dependency WPF + System.Media synthesizer -->
+  <ItemGroup>
+    <None Update="assets\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
